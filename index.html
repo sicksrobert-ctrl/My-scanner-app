@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Route Router Pro (Fixed Scan)</title>
+    <title>Enterprise Route Router Pro (Viewfinder Pro)</title>
     <!-- Include QR/Barcode Scanner Library -->
     <script src="https://unpkg.com"></script>
     <!-- Include Open-Source Mapping Libraries -->
@@ -12,8 +12,43 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 12px; background: #f8fafc; }
         h2 { color: #0f172a; margin-top: 5px; text-align: center; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-        #scanner-container { width: 100%; max-width: 500px; margin: 0 auto; display: none; }
-        #reader { width: 100%; height: 250px; background: black; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+        
+        /* FULL SCREEN OVERLAY VIEWPORT FOR TARGET CAPTURE */
+        #scanner-container { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: rgba(0,0,0,0.85); z-index: 99999; display: none; 
+        }
+        #reader { width: 100vw; height: 100vh; background: black; }
+        
+        /* CROSSHAIR SHIELD INTERFACE ELEMENTS */
+        .viewfinder-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            pointer-events: none; /* Let user tap buttons behind background elements if needed */
+        }
+        .laser-box {
+            width: 260px; height: 200px; border: 2px dashed #00ffcc;
+            position: relative; border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.3), inset 0 0 20px rgba(0, 255, 204, 0.2);
+        }
+        /* CROSSHAIR AXIS MARKS */
+        .laser-box::before {
+            content: ''; position: absolute; top: 50%; left: -10px; right: -10px;
+            height: 2px; background: rgba(255, 50, 50, 0.6); transform: translateY(-50%);
+        }
+        .laser-box::after {
+            content: ''; position: absolute; left: 50%; top: -10px; bottom: -10px;
+            width: 2px; background: rgba(255, 50, 50, 0.4); transform: translateX(-50%);
+        }
+        .scanner-instruction {
+            color: #ffffff; font-weight: bold; font-size: 14px; margin-top: 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8); letter-spacing: 0.5px; text-align: center;
+        }
+        .cancel-scan-wrapper {
+            position: absolute; bottom: 40px; left: 0; width: 100%;
+            display: flex; justify-content: center; pointer-events: auto;
+        }
+
         #map { height: 260px; width: 100%; border-radius: 16px; margin-top: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
         .container { display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto; }
         .card { background: white; padding: 16px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
@@ -34,15 +69,21 @@
 
 <div class="container">
     <h2>📦 Router & Barcode Optimizer</h2>
-    <div class="status-banner">🔓 Camera Fixed: Direct Hardware Link Active</div>
+    <div class="status-banner">🔓 Viewfinder Shield Implemented (Crosshairs Active)</div>
     
-    <!-- MANUAL TRIGGER BUTTON -->
+    <!-- CONTROLLING CLICK PANEL WRAPPERS -->
     <button id="scan-trigger-btn" class="btn-orange" onclick="startManualScanner()">📷 Scan Next Barcode</button>
 
-    <!-- Camera Viewport Container -->
+    <!-- FULL APP OVERLAY TARGET VIEWPORT FOR SCREEN CAPTURE -->
     <div id="scanner-container">
         <div id="reader"></div>
-        <button class="btn-danger" style="margin-top: 8px; width:100%;" onclick="stopManualScanner()">Cancel Scan</button>
+        <div class="viewfinder-overlay">
+            <div class="laser-box"></div>
+            <div class="scanner-instruction">Center Barcode Inside Crosshairs</div>
+            <div class="cancel-scan-wrapper">
+                <button class="btn-danger" style="width: 150px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" onclick="stopManualScanner()">Cancel Scan</button>
+            </div>
+        </div>
     </div>
     
     <div class="card">
@@ -64,7 +105,7 @@
     let map;
     let polylineRoute = null;
     let userLocation = null;
-    let html5QrCode = null; // Use low-level API for instant camera wake
+    let html5QrCode = null;
 
     function initMap() {
         map = L.map('map').setView([35.222, -101.831], 11);
@@ -86,31 +127,27 @@
     }
     initMap();
 
-    // FIXED OPTIMIZED CAMERA CONTROLS
     function startManualScanner() {
         document.getElementById("scanner-container").style.display = "block";
-        document.getElementById("scan-trigger-btn").style.display = "none";
         
-        // Instantiate using the direct low-level identifier string
         if (!html5QrCode) {
             html5QrCode = new Html5Qrcode("reader");
         }
 
-        // Force smartphone to open rear environment camera lens instantly
         html5QrCode.start(
             { facingMode: "environment" }, 
-            { fps: 15, qrbox: { width: 250, height: 220 } },
+            { fps: 15, qrbox: { width: 260, height: 200 } },
             (decodedText) => {
                 const address = decodedText.trim();
-                stopManualScanner(); // Shut off lens stream instantly
+                stopManualScanner();
                 
                 if (address && !waypoints.some(wp => wp.address === address)) { 
                     geocodeAndAdd(address); 
                 }
             },
-            (errorMessage) => { /* Keep loop quiet */ }
+            (errorMessage) => { /* Keep scanning loops private */ }
         ).catch(err => {
-            alert("Camera initialization blocked. Please ensure you tap 'Allow' on browser security prompt.");
+            alert("Camera initialization blocked. Please confirm device camera access configuration.");
             stopManualScanner();
         });
     }
@@ -119,11 +156,9 @@
         if (html5QrCode && html5QrCode.isScanning) {
             html5QrCode.stop().then(() => {
                 document.getElementById("scanner-container").style.display = "none";
-                document.getElementById("scan-trigger-btn").style.display = "block";
             }).catch(err => console.error(err));
         } else {
             document.getElementById("scanner-container").style.display = "none";
-            document.getElementById("scan-trigger-btn").style.display = "block";
         }
     }
 
@@ -172,34 +207,3 @@
         waypoints.forEach((wp, idx) => {
             list.innerHTML += `<li><span class="badge">Stop ${idx + 1}</span> ${wp.address}</li>`;
         });
-        const allMarkers = waypoints.map(wp => wp.marker).filter(m => m !== null);
-        if (allMarkers.length > 0) { map.fitBounds(new L.featureGroup(allMarkers).getBounds().pad(0.1)); }
-    }
-
-    function autoSortRoute() {
-        if (waypoints.length < 1) return;
-        let currentOrigin = userLocation || { lat: waypoints.lat, lon: waypoints.lon };
-        let unvisited = [...waypoints]; let sortedArray = [];
-
-        while (unvisited.length > 0) {
-            let closestIdx = 0; let minDistance = Infinity;
-            for (let i = 0; i < unvisited.length; i++) {
-                let dist = Math.sqrt(Math.pow(unvisited[i].lat - currentOrigin.lat, 2) + Math.pow(unvisited[i].lon - currentOrigin.lon, 2));
-                if (dist < minDistance) { minDistance = dist; closestIdx = i; }
-            }
-            currentOrigin = unvisited[closestIdx];
-            sortedArray.push(unvisited.splice(closestIdx, 1));
-        }
-        waypoints = sortedArray;
-        saveWaypointsToDevice();
-        updateUI();
-        drawRouteLines();
-    }
-
-    function drawRouteLines() {
-        if (polylineRoute) { map.removeLayer(polylineRoute); }
-        let pathPoints = waypoints.map(wp => [wp.lat, wp.lon]);
-        if (userLocation) { pathPoints.unshift([userLocation.lat, userLocation.lon]); }
-        polylineRoute = L.polyline(pathPoints, {color: '#2563eb', weight: 4}).addTo(map);
-    }
-
