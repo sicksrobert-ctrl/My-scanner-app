@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Route Router Pro (Testing Mode)</title>
+    <!-- Include QR/Barcode Scanner Library -->
+    <script src="https://unpkg.com"></script>
+    <!-- Include Open-Source Mapping Libraries -->
+    <link rel="stylesheet" href="https://unpkg.com" />
+    <script src="https://unpkg.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 12px; background: #f8fafc; }
+        h2 { color: #0f172a; margin-top: 5px; text-align: center; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+        #reader { width: 100%; max-width: 500px; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); margin: 0 auto; }
+        #map { height: 260px; width: 100%; border-radius: 16px; margin-top: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+        .container { display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto; }
+        .card { background: white; padding: 16px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+        .grid-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+        button { border: none; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; transition: transform 0.1s; }
+        button:active { transform: scale(0.98); }
+        .btn-blue { background: #2563eb; color: white; }
+        .btn-green { background: #16a34a; color: white; grid-column: span 2; }
+        .btn-danger { background: #ef4444; color: white; }
+        ul { padding-left: 0; margin: 10px 0; list-style-type: none; max-height: 180px; overflow-y: auto; }
+        li { padding: 10px; background: #f1f5f9; border-radius: 8px; margin-bottom: 6px; font-size: 13px; color: #334155; display: flex; align-items: center; }
+        .badge { background: #cbd5e1; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 8px; font-weight: bold; }
+        .status-banner { background: #e0f2fe; color: #0369a1; padding: 8px; border-radius: 8px; font-size: 12px; text-align: center; font-weight: bold; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📦 Router & Barcode Optimizer</h2>
+    <div class="status-banner">🔓 Testing Mode Enabled: No Passkey Required</div>
+    
+    <!-- Video viewscreen for 1D/2D scanning -->
+    <div id="reader"></div>
+    
+    <div class="card">
+        <h3 style="margin-top:0; font-size: 16px; color: #1e293b;">Delivery Queue</h3>
+        <ul id="address-list"></ul>
+        
+        <div class="grid-buttons">
+            <button class="btn-blue" onclick="autoSortRoute()">Auto-Sort Stops</button>
+            <button class="btn-danger" onclick="clearAllWaypoints()">Clear All</button>
+            <button class="btn-green" onclick="exportToNativeMaps()">Launch Voice Turn-by-Turn</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+</div>
+
+<script>
+    let waypoints = [];
+    let map;
+    let polylineRoute = null;
+    let userLocation = null;
+
+    // 1. Initialize Map and load cached layout elements
+    function initMap() {
+        map = L.map('map').setView([35.222, -101.831], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                userLocation = { lat: position.coords.latitude, lon: position.coords.longitude };
+                map.setView([userLocation.lat, userLocation.lon], 13);
+                L.marker([userLocation.lat, userLocation.lon], {
+                    icon: L.divIcon({className: 'user-icon', html: '📍', iconSize: [20, 20]})
+                }).addTo(map).bindPopup("Current Starting Position").openPopup();
+                
+                loadSavedWaypoints();
+            }, () => { loadSavedWaypoints(); });
+        } else {
+            loadSavedWaypoints();
+        }
+    }
+    initMap();
+
+    // 2. Launch Camera directly on page mount
+    function startScanner() {
+        const formats = [
+            Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.DATA_MATRIX,
+            Html5QrcodeSupportedFormats.PDF_417, Html5QrcodeSupportedFormats.CODE_128
+        ];
+        window.html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 12, qrbox: 250, formatsToSupport: formats });
+        html5QrcodeScanner.render(decodedText => {
+            html5QrcodeScanner.clear();
+            const address = decodedText.trim();
+            if (address && !waypoints.some(wp => wp.address === address)) { geocodeAndAdd(address); }
+            setTimeout(() => { startScanner(); }, 2000); // Re-open shutter after processing delay
+        });
+    }
+    startScanner();
+
+    // 3. Geocode Scanned Strings Into Structural Coordinates
+    function geocodeAndAdd(address) {
+        fetch(`https://openstreetmap.org{encodeURIComponent(address)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data.lat); const lon = parseFloat(data.lon);
+                    const marker = L.marker([lat, lon]).addTo(map).bindPopup(address);
+                    waypoints.push({ address: address, lat: lat, lon: lon, marker: marker });
+                    saveWaypointsToDevice();
+                    updateUI();
+                    drawRouteLines();
+                } else {
+                    alert(`Address lookup failed for text: "${address}"`);
+                }
+            }).catch(err => console.error(err));
+    }
+
+    // 4. Client Side Local Storage State Handlers
+    function saveWaypointsToDevice() {
+        const cleanData = waypoints.map(wp => ({ address: wp.address, lat: wp.lat, lon: wp.lon }));
+        localStorage.setItem("saved_waypoints", JSON.stringify(cleanData));
+    }
+
+    function loadSavedWaypoints() {
+        const saved = localStorage.getItem("saved_waypoints");
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            parsed.forEach(wp => {
+                const marker = L.marker([wp.lat, wp.lon]).addTo(map).bindPopup(wp.address);
+                waypoints.push({ address: wp.address, lat: wp.lat, lon: wp.lon, marker: marker });
+            });
+            updateUI();
+            drawRouteLines();
+        }
+    }
+
+    function updateUI() {
+        const list = document.getElementById("address-list");
+        list.innerHTML = "";
+        if (waypoints.length === 0) {
+            list.innerHTML = `<li style="background:none; color:#888;">Queue empty. Scan 1D/2D commercial codes.</li>`;
+            return;
+        }
+        waypoints.forEach((wp, idx) => {
+            list.innerHTML += `<li><span class="badge">Stop ${idx + 1}</span> ${wp.address}</li>`;
+        });
+        const allMarkers = waypoints.map(wp => wp.marker).filter(m => m !== null);
+        if (allMarkers.length > 0) { map.fitBounds(new L.featureGroup(allMarkers).getBounds().pad(0.1)); }
+    }
+
+    // 5. Mathematical Distance Sorting Algorithms
+    function autoSortRoute() {
+        if (waypoints.length < 1) return;
+        let currentOrigin = userLocation || { lat: waypoints[0].lat, lon: waypoints[0].lon };
+        let unvisited = [...waypoints]; let sortedArray = [];
+
+        while (unvisited.length > 0) {
+            let closestIdx = 0; let minDistance = Infinity;
+            for (let i = 0; i < unvisited.length; i++) {
+                let dist = Math.sqrt(Math.pow(unvisited[i].lat - currentOrigin.lat, 2) + Math.pow(unvisited[i].lon - currentOrigin.lon, 2));
+                if (dist < minDistance) { minDistance = dist; closestIdx = i; }
+            }
+            currentOrigin = unvisited[closestIdx];
+            sortedArray.push(unvisited.splice(closestIdx, 1)[0]);
+        }
+        waypoints = sortedArray;
+        saveWaypointsToDevice();
+        updateUI();
+        drawRouteLines();
+    }
+
+    function drawRouteLines() {
+        if (polylineRoute) { map.removeLayer(polylineRoute); }
+        let pathPoints = waypoints.map(wp => [wp.lat, wp.lon]);
+        if (userLocation) { pathPoints.unshift([userLocation.lat, userLocation.lon]); }
+        polylineRoute = L.polyline(pathPoints, {color: '#2563eb', weight: 4}).addTo(map);
+    }
+
+    // 6. Native Navigation Intent Dispatchers
+    function exportToNativeMaps() {
+        if (waypoints.length === 0) { alert("No addresses ready to map."); return; }
+        const isApple = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        
+        if (isApple) {
+            let url = `http://apple.com`;
+            waypoints.forEach(wp => { url += `&daddr=${encodeURIComponent(wp.address)}`; });
+            window.open(url, '_blank');
+        } else {
+            let origin = "Current+Location";
+            let destination = encodeURIComponent(waypoints[waypoints.length - 1].address);
+            let waypointsList = waypoints.slice(0, -1).map(wp => encodeURIComponent(wp.address)).join('|');
+            let url = `https://google.com{origin}&destination=${destination}`;
+            if (waypointsList) { url += `&waypoints=${waypointsList}`; }
+            window.open(url, '_blank');
+        }
+    }
+
+    function clearAllWaypoints() {
+        waypoints.forEach(wp => { if (wp.marker) map.removeLayer(wp.marker); });
+        if (polylineRoute) { map.removeLayer(polylineRoute); }
+        waypoints = [];
+        localStorage.removeItem("saved_waypoints");
+        updateUI();
+    }
+</script>
+</body>
+</html>
