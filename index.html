@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enterprise Route Router Pro (Fail-Safe Edition)</title>
-    <!-- Include QR/Barcode Scanner Library -->
+    <title>Enterprise Route Router Pro (No-Permission Edition)</title>
+    <!-- Include Direct Image Extraction Scanner Library -->
     <script src="https://unpkg.com"></script>
     <!-- Include Open-Source Mapping Libraries -->
     <link rel="stylesheet" href="https://unpkg.com" />
@@ -12,59 +12,42 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 12px; background: #f8fafc; }
         h2 { color: #0f172a; margin-top: 5px; text-align: center; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-        
-        #scanner-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 99999; display: none; }
-        #reader { width: 100vw; height: 100vh; background: black; }
-        .viewfinder-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: none; }
-        .laser-box { width: 260px; height: 200px; border: 2px dashed #00ffcc; position: relative; border-radius: 12px; box-shadow: 0 0 20px rgba(0, 255, 204, 0.3), inset 0 0 20px rgba(0, 255, 204, 0.2); }
-        .laser-box::before { content: ''; position: absolute; top: 50%; left: -10px; right: -10px; height: 2px; background: rgba(255, 50, 50, 0.6); transform: translateY(-50%); }
-        .laser-box::after { content: ''; position: absolute; left: 50%; top: -10px; bottom: -10px; width: 2px; background: rgba(255, 50, 50, 0.4); transform: translateX(-50%); }
-        .scanner-instruction { color: #ffffff; font-weight: bold; font-size: 14px; margin-top: 15px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); text-align: center; }
-        .cancel-scan-wrapper { position: absolute; bottom: 40px; left: 0; width: 100%; display: flex; justify-content: center; pointer-events: auto; }
-
-        #map { height: 260px; width: 100%; border-radius: 16px; margin-top: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+        #map { height: 280px; width: 100%; border-radius: 16px; margin-top: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
         .container { display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto; }
         .card { background: white; padding: 16px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
         .grid-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-        button { border: none; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; transition: transform 0.1s; }
-        button:active { transform: scale(0.98); }
-        .btn-blue { background: #2563eb; color: white; }
-        .btn-orange { background: #ea580c; color: white; font-size: 16px; padding: 16px; width: 100%; max-width: 500px; margin: 0 auto; display: block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; text-decoration: none; }
-        .btn-green { background: #16a34a; color: white; grid-column: span 2; }
-        .btn-danger { background: #ef4444; color: white; }
+        button, .btn-orange { border: none; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; transition: transform 0.1s; text-align: center; display: block; box-sizing: border-box; }
+        button:active, .btn-orange:active { transform: scale(0.98); }
+        .btn-blue { background: #2563eb; color: white; width: 100%; }
+        .btn-orange { background: #ea580c; color: white; font-size: 16px; padding: 16px; width: 100%; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-decoration: none; }
+        .btn-green { background: #16a34a; color: white; grid-column: span 2; width: 100%; }
+        .btn-danger { background: #ef4444; color: white; width: 100%; }
         ul { padding-left: 0; margin: 10px 0; list-style-type: none; max-height: 180px; overflow-y: auto; }
         li { padding: 10px; background: #f1f5f9; border-radius: 8px; margin-bottom: 6px; font-size: 13px; color: #334155; display: flex; align-items: center; }
         .badge { background: #cbd5e1; color: #1e293b; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 8px; font-weight: bold; }
         .status-banner { background: #f0fdf4; color: #16a34a; padding: 8px; border-radius: 8px; font-size: 12px; text-align: center; font-weight: bold; margin-bottom: 5px; border: 1px solid #bbf7d0; }
         
-        /* Hidden file catcher input */
-        #fallback-file-input { display: none; }
+        /* The Hidden Catcher Element */
+        #hidden-camera-input { display: none; }
+        
+        /* Loading spinner */
+        #loading-wheel { display: none; text-align: center; font-size: 14px; color: #ea580c; font-weight: bold; padding: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>📦 Router & Barcode Optimizer</h2>
-    <div class="status-banner">✅ Direct Mode Active (Fail-Safe Enabled)</div>
+    <div class="status-banner">⚡ Zero-Permission Snapshot Engine Active</div>
     
-    <!-- MAIN INTERACTIVE TRIGGER BUTTON -->
-    <button id="scan-trigger-btn" class="btn-orange" onclick="activateSmartScanner()">📷 Scan Barcode / Take Photo</button>
+    <!-- NATIVE HARDWARE TRIGGER LABEL LINK -->
+    <label for="hidden-camera-input" class="btn-orange">📷 Take Barcode Photo</label>
     
-    <!-- NATIVE PHONE CAMERA CAPTURE FALLBACK (Hidden input field) -->
-    <input type="file" id="fallback-file-input" accept="image/*" capture="environment" onchange="processCapturedPhoto(event)">
+    <!-- NATIVE CHANNEL INPUT - Bypasses Browser Privacy Blocks Completely -->
+    <input type="file" id="hidden-camera-input" accept="image/*" capture="environment" onchange="extractBarcodeFromPhoto(event)">
+    
+    <div id="loading-wheel">⚙️ Processing image file layout...</div>
 
-    <!-- Full screen viewport crosshair system -->
-    <div id="scanner-container">
-        <div id="reader"></div>
-        <div class="viewfinder-overlay">
-            <div class="laser-box"></div>
-            <div class="scanner-instruction">Center Barcode Inside Crosshairs</div>
-            <div class="cancel-scan-wrapper">
-                <button class="btn-danger" style="width: 150px;" onclick="stopManualScanner()">Cancel Scan</button>
-            </div>
-        </div>
-    </div>
-    
     <div class="card">
         <h3 style="margin-top:0; font-size: 16px; color: #1e293b;">Delivery Queue</h3>
         <ul id="address-list"></ul>
@@ -76,6 +59,8 @@
         </div>
     </div>
 
+    <!-- Hidden parsing div canvas needed by engine -->
+    <div id="qr-reader-engine-canvas" style="display:none;"></div>
     <div id="map"></div>
 </div>
 
@@ -84,7 +69,7 @@
     let map;
     let polylineRoute = null;
     let userLocation = null;
-    let html5QrCode = null;
+    let scannerEngine = null;
 
     function initMap() {
         map = L.map('map').setView([35.222, -101.831], 11);
@@ -96,7 +81,7 @@
                 map.setView([userLocation.lat, userLocation.lon], 13);
                 L.marker([userLocation.lat, userLocation.lon], {
                     icon: L.divIcon({className: 'user-icon', html: '📍', iconSize:})
-                }).addTo(map).bindPopup("Current Starting Position").openPopup();
+                }).addTo(map).bindPopup("Starting Position").openPopup();
                 loadSavedWaypoints();
             }, () => { loadSavedWaypoints(); });
         } else {
@@ -105,55 +90,31 @@
     }
     initMap();
 
-    // SMART SCANNER ROUTER LOGIC
-    function activateSmartScanner() {
-        document.getElementById("scanner-container").style.display = "block";
-        if (!html5QrCode) { html5QrCode = new Html5Qrcode("reader"); }
-
-        // Attempt live hardware crosshair scan stream
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            { fps: 15, qrbox: { width: 260, height: 200 } },
-            (decodedText) => {
-                const address = decodedText.trim();
-                stopManualScanner();
-                if (address && !waypoints.some(wp => wp.address === address)) { geocodeAndAdd(address); }
-            },
-            (errorMessage) => {}
-        ).catch(err => {
-            // IF VIDEO STREAM BLOCKED: Silently bypass error screen and fire phone camera app!
-            console.log("Video feed blocked. Launching hardware snapshot fallback app channel.");
-            stopManualScanner();
-            document.getElementById("fallback-file-input").click();
-        });
-    }
-
-    // STATIC PHOTO PROCESSING ENGINE (Bypasses all permission blocks)
-    function processCapturedPhoto(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        if (!html5QrCode) { html5QrCode = new Html5Qrcode("reader"); }
+    // FAIL-SAFE EXTRACTION ROUTINE
+    function extractBarcodeFromPhoto(event) {
+        const fileList = event.target.files;
+        if (fileList.length === 0) return;
         
-        // Scan the static camera image for any 1D or 2D barcodes
-        html5QrCode.scanFile(file, true)
+        document.getElementById("loading-wheel").style.display = "block";
+        const selectedFile = fileList[0];
+
+        if (!scannerEngine) {
+            scannerEngine = new Html5Qrcode("qr-reader-engine-canvas");
+        }
+        
+        // Feed file directly into image processing algorithm
+        scannerEngine.scanFile(selectedFile, true)
             .then(decodedText => {
+                document.getElementById("loading-wheel").style.display = "none";
                 const address = decodedText.trim();
-                if (address && !waypoints.some(wp => wp.address === address)) { geocodeAndAdd(address); }
+                if (address && !waypoints.some(wp => wp.address === address)) { 
+                    geocodeAndAdd(address); 
+                }
             })
             .catch(err => {
-                alert("Could not detect a barcode in that photo. Make sure the light is bright and the code is clear!");
+                document.getElementById("loading-wheel").style.display = "none";
+                alert("Could not find a barcode. Ensure the code fills the center of your shot, has bright lighting, and is in sharp focus!");
             });
-    }
-
-    function stopManualScanner() {
-        if (html5QrCode && html5QrCode.isScanning) {
-            html5QrCode.stop().then(() => {
-                document.getElementById("scanner-container").style.display = "none";
-            }).catch(err => console.error(err));
-        } else {
-            document.getElementById("scanner-container").style.display = "none";
-        }
     }
 
     function geocodeAndAdd(address) {
@@ -183,3 +144,58 @@
         if (saved) {
             const parsed = JSON.parse(saved);
             parsed.forEach(wp => {
+                const marker = L.marker([wp.lat, wp.lon]).addTo(map).bindPopup(wp.address);
+                waypoints.push({ address: wp.address, lat: wp.lat, lon: wp.lon, marker: marker });
+            });
+            updateUI();
+            drawRouteLines();
+        }
+    }
+
+    function updateUI() {
+        const list = document.getElementById("address-list");
+        list.innerHTML = "";
+        if (waypoints.length === 0) {
+            list.innerHTML = `<li style="background:none; color:#888;">Queue empty. Tap the button above to snap a barcode photo.</li>`;
+            return;
+        }
+        waypoints.forEach((wp, idx) => {
+            list.innerHTML += `<li><span class="badge">Stop ${idx + 1}</span> ${wp.address}</li>`;
+        });
+        const allMarkers = waypoints.map(wp => wp.marker).filter(m => m !== null);
+        if (allMarkers.length > 0) { map.fitBounds(new L.featureGroup(allMarkers).getBounds().pad(0.1)); }
+    }
+
+    function autoSortRoute() {
+        if (waypoints.length < 1) return;
+        let currentOrigin = userLocation || { lat: waypoints.lat, lon: waypoints.lon };
+        let unvisited = [...waypoints]; let sortedArray = [];
+
+        while (unvisited.length > 0) {
+            let closestIdx = 0; let minDistance = Infinity;
+            for (let i = 0; i < unvisited.length; i++) {
+                let dist = Math.sqrt(Math.pow(unvisited[i].lat - currentOrigin.lat, 2) + Math.pow(unvisited[i].lon - currentOrigin.lon, 2));
+                if (dist < minDistance) { minDistance = dist; closestIdx = i; }
+            }
+            currentOrigin = unvisited[closestIdx];
+            sortedArray.push(unvisited.splice(closestIdx, 1));
+        }
+        waypoints = sortedArray;
+        saveWaypointsToDevice();
+        updateUI();
+        drawRouteLines();
+    }
+
+    function drawRouteLines() {
+        if (polylineRoute) { map.removeLayer(polylineRoute); }
+        let pathPoints = waypoints.map(wp => [wp.lat, wp.lon]);
+        if (userLocation) { pathPoints.unshift([userLocation.lat, userLocation.lon]); }
+        polylineRoute = L.polyline(pathPoints, {color: '#2563eb', weight: 4}).addTo(map);
+    }
+
+    function exportToNativeMaps() {
+        if (waypoints.length === 0) { alert("No addresses ready to map."); return; }
+        const isApple = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        
+        if (isApple) {
+            let url = `http://apple.com`;
